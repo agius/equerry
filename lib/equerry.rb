@@ -1,9 +1,10 @@
 require "equerry/version"
 
 module Equerry
-  module Boosts ; end
-  module Queries ; end
-  module Filters ; end
+  module Boosts      ; end
+  module Queries     ; end
+  module Filters     ; end
+  module Combinators ; end
 
   attr_accessor :index, :logger
 
