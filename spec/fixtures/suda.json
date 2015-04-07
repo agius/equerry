@@ -1,0 +1,22 @@
+{
+  "id" : 2,
+  "name" : "Goichi Suda",
+  "title" : "Game Artiste",
+  "games" : [
+    {
+      "id" : 5,
+      "title" : "Killer7",
+      "platforms" : ["GameCube"]
+    },
+    {
+      "id" : 6,
+      "title" : "No More Heroes",
+      "platforms" : ["GameCube"]
+    },
+    {
+      "id" : 7,
+      "title" : "Shadows of the Damned",
+      "platforms" : ["Xbox 360", "PlayStation 3"]
+    }
+  ]
+}

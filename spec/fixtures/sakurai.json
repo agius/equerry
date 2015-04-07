@@ -1,0 +1,27 @@
+{
+  "id" : 1,
+  "name" : "Masahiro Sakurai",
+  "title" : "Game Developer",
+  "games" : [
+    {
+      "id" : 1,
+      "title" : "Super Smash Bros",
+      "platforms" : ["Nintendo 64"]
+    },
+    {
+      "id" : 2,
+      "title" : "Smash Bros Melee",
+      "platforms" : ["GameCube"]
+    },
+    {
+      "id" : 3,
+      "title" : "Smash Bros Brawl",
+      "platforms" : ["Wii"]
+    },
+    {
+      "id" : 4,
+      "title" : "Smash Bros WiiU",
+      "platforms" : ["Wii U"]
+    }
+  ]
+}

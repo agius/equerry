@@ -1,0 +1,22 @@
+{
+  "id" : 3,
+  "name" : "Tetsuya Mizuguchi",
+  "title" : "Game Musician",
+  "games" : [
+    {
+      "id" : 8,
+      "title" : "Rez",
+      "platforms" : ["Dreamcast"]
+    },
+    {
+      "id" : 9,
+      "title" : "Lumines",
+      "platforms" : ["PlayStation Portable", "PlayStation 3", "Xbox 360", "iOS"]
+    },
+    {
+      "id" : 10,
+      "title" : "Child of Eden",
+      "platforms" : ["Xbox 360", "PlayStation 3"]
+    }
+  ]
+}
