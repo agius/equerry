@@ -81,19 +81,19 @@ describe Equerry do
       end
 
       it 'can index a document' do
-        subject.index(body: FIXTURES[:sakurai])
+        subject.index(body: fixture(:sakurai))
         subject.refresh
         expect(subject.count).to eq(1)
       end
 
       it 'can bulk index multiple documents' do
-        subject.bulk(documents: [FIXTURES[:sakurai], FIXTURES[:mizuguchi]])
+        subject.bulk(documents: [fixture(:sakurai), fixture(:mizuguchi)])
         subject.refresh
         expect(subject.count).to eq(2)
       end
 
       it 'can search for documents' do
-        subject.index(body: FIXTURES[:sakurai])
+        subject.index(body: fixture(:sakurai))
         subject.refresh
         results = subject.search(body: { query: { match_all: {} }})
         expect(results['hits']['total']).to eq(1)
