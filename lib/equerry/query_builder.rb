@@ -1,44 +1,37 @@
 module Equerry
   class QueryBuilder
+    DEFAULT_LIMIT = 30
 
     include Equerry::Utils::Helpers
 
-    def initialize(offset: 0, limit: 40, match: nil, filters: [], not_filters: [], boosts: [],
-                   index:, type:)
-
-      @offest = offset
-      @limit = limit
-      @match = match
-      @filters = filters
-      @not_filters = not_filters
-      @boosts = boosts
-      @type = type
-      @index = index
+    def initialize(options = {})
+      options       = optionize(options)
+      @offset       = options[:offset]       || 0
+      @limit        = options[:limit]        || DEFAULT_LIMIT
+      @queries      = options[:queries]
+      @filters      = options[:filters]
+      @boosts       = options[:boosts]
+      @aggregations = options[:aggregations]
+      @type         = options[:type]         || Equerry.default_type
+      @index        = options[:index]        || Equerry.default_index
     end
 
     def clone_with(options)
-      options = optionize(options)
-      filters = @filters || []
-      filters += (options[:filters] || [])
-      filters += [options[:filter]] if options[:filter]
-
-      not_filters = @not_filters || []
-      not_filters += (options[:not_filters] || [])
-      not_filters += [options[:not_filter]] if options[:not_filter]
-
-      boosts = @boosts || []
-      boosts += (options[:boosts] || [])
-      boosts += [options[:boost]] if options[:boost]
+      options      = optionize(options)
+      queries      = [@queries, options[:queries], options[:query]  ].flatten.compact
+      filters      = [@filters, options[:filters], options[:filter] ].flatten.compact
+      boosts       = [@boosts,  options[:boosts],  options[:boost]  ].flatten.compact
+      aggregations = [@aggregations, options[:aggregations], options[:aggregation]].flatten.compact
 
       self.class.new(
-        type: @type,
-        index: @index,
-        offset: options[:offset] || @offset,
-        limit: options[:limit] || @limit,
-        match: options[:match] || @match,
-        filters: filters,
-        not_filters: not_filters,
-        boosts: boosts
+        type:         @type,
+        index:        @index,
+        offset:       options[:offset]  || @offset,
+        limit:        options[:limit]   || @limit,
+        queries:      queries,
+        filters:      filters,
+        boosts:       boosts,
+        aggregations: aggregations
       )
     end
 
@@ -52,49 +45,27 @@ module Equerry
 
     def where(options = {})
       return self unless options.present?
-      filters = []
-      not_filters = []
-      options.each do |field, values|
-        if values.nil?
-          not_filters << Filters::ExistsFilter.new(field)
-        elsif values.is_a?(Array)
-          filters << Filters::TermsFilter.new(field: field, values: values)
-        else
-          filters << Filters::TermsFilter.new(field: field, values: [values])
-        end
-      end
+      filters, not_filters = where_clause(options)
       clone_with(filters: filters, not_filters: not_filters)
     end
 
     def not_where(options = {})
       return self unless options.present?
-      filters = []
-      not_filters = []
-      options.each do |field, values|
-        if values.nil?
-          filters << Filters::ExistsFilter.new(field)
-        elsif values.is_a?(Array)
-          not_filters << Filters::TermsFilter.new(field: field, values: values)
-        else
-          not_filters << Filters::TermsFilter.new(field: field, values: [values])
-        end
-      end
-      clone_with(not_filters: not_filters, filters: filters)
+      # reverse the order returned here, since we're doing not_where
+      not_filters, filters = where_clause(options)
+      clone_with(filters: filters, not_filters: not_filters)
     end
 
     def boost_where(options = {})
       return self unless options.present?
-      options = optionize(options)
       weight = options.delete(:weight) || 1.2
 
       boosts = options.map do |field, values|
         filter = nil
         if values.nil?
-          filter = Filters::ExistsFilter.new(field)
-        elsif values.is_a?(Array)
-          filter = Filters::TermsFilter.new(field: field, values: values)
+          filter = Filters::NotFilter.new(Filters::ExistsFilter.new(field))
         else
-          filter = Filters::TermsFilter.new(field: field, values: [values])
+          filter = Filters::TermsFilter.new(field: field, values: Array(values))
         end
         Boosts::FilterBoost.new(filter: filter, weight: weight)
       end
@@ -110,13 +81,11 @@ module Equerry
       options.each do |field, values|
         filter = nil
         if values.nil?
-          filter << Filters::ExistsFilter.new(field)
+          filter = Filters::ExistsFilter.new(field)
         elsif values.is_a?(Array)
-          filter << Filters::TermsFilter.new(field: field, values: values)
-        else
-          filter << Filters::TermsFilter.new(field: field, values: [values])
+          filter = NotFilter.new(Filters::TermsFilter.new(field: field, values: Array(values)))
         end
-        Boosts::FilterBoost.new(filter: NotFilter.new(filter: filter))
+        Boosts::FilterBoost.new(filter: filter)
       end
       clone_with(boosts: boosts)
     end
@@ -180,17 +149,24 @@ module Equerry
     end
 
     def match(string, options = {})
-      field = options[:field] || '_all'
-      operator = options[:operator] || 'and'
-      clone_with(match: Queries::MatchQuery.new(string, field: field, operator: operator))
+      return self unless string.present?
+      field     = options[:field] || '_all'
+      operator  = options[:operator] || 'and'
+      clone_with(query: Queries::MatchQuery.new(string, field: field, operator: operator))
     end
 
     def not_match(string, options = {})
       field = options[:field] || '_all'
       operator = options[:operator] || 'and'
-      clone_with(not_filter: Filters::QueryFilter.new(
-        Queries::MatchQuery.new(string, field: field, operator: operator)
+      clone_with(filter: Filter::NotFilter.new(
+        Filters::QueryFilter.new(
+          Queries::MatchQuery.new(string, field: field, operator: operator)
+        )
       ))
+    end
+
+    def boost_random(seed)
+      clone_with(boost: Boosts::RandomBoost.new(seed))
     end
 
     def request
@@ -203,11 +179,11 @@ module Equerry
     end
 
     def response
-      @response = Equerry.search(type: @type, body: request.to_search)
+      @response = Search.search(type: @type, body: request.to_search)
     end
 
     def id_response
-      @id_response ||= Equerry.search(type: @type, body: request.to_search, fields: [])
+      @id_response ||= Search.search(type: @type, body: request.to_search, fields: [])
       @id_response
     end
 
@@ -222,7 +198,7 @@ module Equerry
     end
 
     def ids
-      @ids ||= result_metadata('hits', 'hits').map{ |hit| hit['_id'].to_i == 0 ? hit['_id'] : hit['_id'].to_i }
+      @ids    ||= result_metadata('hits', 'hits').map{ |hit| hit['_id'].to_i == 0 ? hit['_id'] : hit['_id'].to_i }
     end
 
     def shards
@@ -230,16 +206,32 @@ module Equerry
     end
 
     def total
-      @total ||= result_metadata('hits', 'total')
+      @total  ||= result_metadata('hits', 'total')
     end
 
     private
       def result_metadata(*args)
         if @response
-          args.reduce(@respons){|json, field| json.nil? ? nil : json[field] }
+          args.reduce(@response){|json, field| json.nil? ? nil : json[field] }
         else
           args.reduce(id_response){|json, field| json.nil? ? nil : json[field] }
         end
+      end
+
+      def where_clause(options = {})
+        return [[], []] unless options.present?
+        options = optionize(options)
+        filters = []
+        not_filters = []
+
+        options.each do |field, values|
+          if values.nil?
+            not_filters << Filters::ExistsFilter.new(field)
+          else
+            filters << Filters::TermsFilter.new(field: field, values: Array(values))
+          end
+        end
+        [filters, not_filters]
       end
 
   end

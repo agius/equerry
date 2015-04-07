@@ -1,6 +1,7 @@
 module Equerry
   module Filters
     class QueryFilter
+      attr_reader :query
 
       def initialize(query)
         @query = query

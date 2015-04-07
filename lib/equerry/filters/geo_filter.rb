@@ -1,6 +1,8 @@
 module Equerry
   module Filters
     class GeoFilter
+      attr_reader :field, :distance, :lat, :lng
+
       def initialize(field: 'coords', distance: '50km', lat:, lng:)
         @field = field
         @distance = distance

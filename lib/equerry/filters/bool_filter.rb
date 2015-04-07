@@ -1,6 +1,8 @@
 module Equerry
   module Filters
     class BoolFilter
+      attr_reader :must, :must_not, :should
+
       def initialize(must:, must_not:, should: nil)
         @must = must
         @must_not = must_not

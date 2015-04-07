@@ -2,20 +2,22 @@ module Equerry
   module Queries
     class FunctionScoreQuery
 
+      def self.attributes
+        [:filter, :boost, :max_boost, :score_mode, :boost_mode, :min_score]
+      end
+
+      attr_reader *attributes
+
       SCORE_MODES = %w(multiply sum avg first max min)
       BOOST_MODES = %w(multiply replace sum avg max min)
 
-      def initialize(functions: [], query: nil, filter: nil, boost: nil,
-                     max_boost: nil, score_mode: nil, boost_mode: nil,
-                     min_score: nil)
-        @functions = functions
-        @query = query
-        @filter = filter
-        @boost = boost
-        @max_boost = max_boost
-        @score_mode = score_mode
-        @boost_mode = boost_mode
-        @min_score = min_score
+      def initialize(options = {})
+        @functions  = Array(options[:functions])
+        @query      = options[:query] || MatchAllQuery.new
+        
+        self.class.attributes.map do |field|
+          instance_variable_set("@#{field}", options[field])
+        end
         validate
       end
 
@@ -47,14 +49,15 @@ module Equerry
 
       def to_search
         json = {}
-        json[:functions] = @functions.map(&:to_search)
-        json[:query] = @query.to_search if @query.present?
-        json[:filter] = @filter.to_search if @filter.present?
-        json[:boost] = @boost if @boost.present?
-        json[:max_boost] = @max_boost if @max_boost.present?
-        json[:score_mode] = @score_mode if @score_mode.present?
-        json[:boost_mode] = @boost_mode if @boost_mode.present?
-        json[:min_score] = @min_score if @min_score.present?
+        json[:functions]  = @functions.map(&:to_search)
+        json[:query]      = @query.to_search
+
+        self.class.attributes.reduce(json) do |body, field|
+          ivar = instance_variable_get("@#{field}")
+          body[field] = ivar if ivar.present?
+          body
+        end
+
         { function_score: json }
       end
     end

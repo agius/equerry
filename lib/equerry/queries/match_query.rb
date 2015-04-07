@@ -1,11 +1,12 @@
 module Equerry
   module Queries
     class MatchQuery
+      attr_reader :field, :operator, :string
 
       def initialize(string, field: '_all', operator: 'and')
-        @field = field
+        @field    = field
         @operator = operator
-        @string = string
+        @string   = string
       end
 
       def to_search

@@ -1,6 +1,7 @@
 module Equerry
   module Filters
     class AndFilter
+      attr_reader :filters
 
       def initialize(filters)
         @filters = filters

@@ -1,6 +1,7 @@
 module Equerry
   module Boosts
     class FilterBoost
+      attr_reader :filter, :weight
 
       def initialize(filter:, weight: 1.2)
         @filter = filter

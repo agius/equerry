@@ -1,7 +1,7 @@
 require 'elasticsearch'
 require 'hashie'
 
-['utils', nil, 'queries', 'filters', 'combinators', 'boosts'].each do |dirname|
+['utils', nil, 'queries', 'filters', 'boosts'].each do |dirname|
   path = if dirname
     File.join(File.expand_path(File.dirname(__FILE__)), 'equerry', dirname, '*.rb')
   else
@@ -19,7 +19,6 @@ module Equerry
   module Boosts      ; end
   module Queries     ; end
   module Filters     ; end
-  module Combinators ; end
 
   module_function
 

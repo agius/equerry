@@ -1,6 +1,8 @@
 module Equerry
   module Filters
     class RangeFilter
+      attr_reader :field, :min, :max
+      
       def initialize(field:, min:, max:)
         @field = field
         @min = min

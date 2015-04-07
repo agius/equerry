@@ -1,6 +1,7 @@
 module Equerry
   module Boosts
     class GeoBoost
+      attr_reader :field, :offset, :scale, :lat, :lng
 
       def initialize(field: 'coords', offset: '10km', scale: '50km', lat:, lng:)
         @field = field

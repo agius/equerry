@@ -1,14 +1,11 @@
 module Equerry
   module Filters
     class TermsFilter
+      attr_reader :field, :values
 
       def initialize(field:, values:)
         @field = field
-        if(values.is_a?(Array))
-          @values = values
-        else
-          @values = [values]
-        end
+        @values = Array(values)
       end
 
       def to_search

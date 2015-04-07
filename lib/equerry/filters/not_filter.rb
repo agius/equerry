@@ -1,6 +1,7 @@
 module Equerry
   module Filters
     class NotFilter
+      attr_reader :filter
 
       def initialize(filters)
         if(filters.is_a?(Array))
