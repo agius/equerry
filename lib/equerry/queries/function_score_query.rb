@@ -1,6 +1,10 @@
 module Equerry
   module Queries
     class FunctionScoreQuery
+      extend Equerry::Utils::Contract
+
+      SCORE_MODES = %w(multiply sum avg first max min)
+      BOOST_MODES = %w(multiply replace sum avg max min)
 
       def self.attributes
         [:filter, :boost, :max_boost, :score_mode, :boost_mode, :min_score]
@@ -8,8 +12,16 @@ module Equerry
 
       attr_reader *attributes
 
-      SCORE_MODES = %w(multiply sum avg first max min)
-      BOOST_MODES = %w(multiply replace sum avg max min)
+      contract Hash[
+        boost: Numeric,
+        max_boost: Numeric,
+        min_score: Numeric,
+        score_mode: SCORE_MODES,
+        boost_mode: BOOST_MODES,
+        query: Proc.new {
+          (@query.nil? || @filter.nil?) ? true : "Cannot have both query and filter - combine using a FilteredQuery"
+        }
+      ]
 
       def initialize(options = {})
         @functions  = Array(options[:functions])
@@ -19,32 +31,6 @@ module Equerry
           instance_variable_set("@#{field}", options[field])
         end
         validate
-      end
-
-      def validate
-        if @query.present? && @filter.present?
-          raise ArgumentError.new("Cannot have both query and filter -- combine using a FilteredQuery")
-        end
-
-        if @boost.present? && !@boost.is_a?(Numeric)
-          raise ArgumentError.new("Boost must be a number - it is the global boost for the whole query")
-        end
-
-        if @max_boost.present? && !@max_boost.is_a?(Numeric)
-          raise ArgumentError.new("Max boost must be a number")
-        end
-
-        if @min_score.present? && !@min_score.is_a?(Numeric)
-          raise ArgumentError.new("min_score must be a number - it is the global boost for the whole query")
-        end
-
-        if @score_mode.present? && !SCORE_MODES.include?(@score_mode)
-          raise ArgumentError.new("Score mode must be one of #{SCORE_MODES.join(', ')}")
-        end
-
-        if @boost_mode.present? && !BOOST_MODES.include?(@boost_mode)
-          raise ArgumentError.new("Score mode must be one of #{BOOST_MODES.join(', ')}")
-        end
       end
 
       def to_search
